@@ -1,0 +1,7 @@
+# PyInstaller 构建产物（不入库，打包脚本可重建）
+dist/
+build/
+
+# Python 缓存
+__pycache__/
+*.pyc

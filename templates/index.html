@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCB 注释脱敏与回填工具</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔧 PCB 注释脱敏与回填工具</h1>
+            <p class="subtitle">Altium Designer PcbDoc 文件批量处理 · 一键清除/导入元件参数</p>
+        </header>
+
+        <!-- 模式切换 -->
+        <div class="mode-switcher">
+            <button class="mode-btn active" data-mode="desensitize">🛡️ 一键脱敏</button>
+            <button class="mode-btn" data-mode="fill">📥 一键回填</button>
+        </div>
+
+        <!-- 脱敏面板 -->
+        <div class="panel" id="panel-desensitize">
+            <div class="panel-header">
+                <h2>一键脱敏</h2>
+                <p>清除 PcbDoc 中所有元件的 Comment（元件参数），适用于交付脱敏版本</p>
+            </div>
+
+            <div class="upload-section">
+                <label class="file-drop" id="drop-desensitize">
+                    <input type="file" accept=".PcbDoc,.pcbdoc" id="file-pcb-desensitize">
+                    <div class="file-drop-content">
+                        <div class="file-icon">📄</div>
+                        <div class="file-text">点击或拖拽 PcbDoc 文件到此处</div>
+                        <div class="file-hint">仅支持 .PcbDoc 格式</div>
+                    </div>
+                </label>
+                <div class="file-selected" id="selected-desensitize" style="display:none;">
+                    <span class="file-name" id="filename-desensitize"></span>
+                    <button class="btn-clear-file" data-target="desensitize">×</button>
+                </div>
+            </div>
+
+            <div class="preview-section" id="preview-desensitize" style="display:none;">
+                <div class="preview-summary">
+                    <span>共 <b id="preview-count">0</b> 个元件</span>
+                    <span class="preview-toggle" id="toggle-list">查看详情 ▼</span>
+                </div>
+                <div class="preview-list" id="preview-list" style="display:none;">
+                    <table>
+                        <thead>
+                            <tr><th>位号</th><th>当前 Comment</th><th>封装</th></tr>
+                        </thead>
+                        <tbody id="preview-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="action-section">
+                <button class="btn-action" id="btn-desensitize" disabled>🛡️ 执行脱敏</button>
+            </div>
+
+            <div class="result-section" id="result-desensitize" style="display:none;">
+                <div class="result-success">
+                    <span class="result-icon">✓</span>
+                    <span id="result-msg-desensitize"></span>
+                </div>
+                <a class="btn-download" id="download-desensitize" download>📥 下载脱敏后的 PcbDoc</a>
+            </div>
+        </div>
+
+        <!-- 回填面板 -->
+        <div class="panel" id="panel-fill" style="display:none;">
+            <div class="panel-header">
+                <h2>一键回填</h2>
+                <p>从 BOM 元件清单读取元件参数，写入 PcbDoc 对应元件的 Comment 栏目</p>
+            </div>
+
+            <div class="upload-row">
+                <label class="file-drop" id="drop-pcb-fill">
+                    <input type="file" accept=".PcbDoc,.pcbdoc" id="file-pcb-fill">
+                    <div class="file-drop-content">
+                        <div class="file-icon">📄</div>
+                        <div class="file-text">PcbDoc 文件</div>
+                    </div>
+                </label>
+                <label class="file-drop" id="drop-bom">
+                    <input type="file" accept=".xls,.xlsx" id="file-bom">
+                    <div class="file-drop-content">
+                        <div class="file-icon">📊</div>
+                        <div class="file-text">BOM Excel 文件</div>
+                    </div>
+                </label>
+            </div>
+
+            <div class="file-summary" id="files-summary-fill" style="display:none;">
+                <div class="file-info-item">
+                    <span class="file-info-label">PCB:</span>
+                    <span class="file-info-name" id="filename-pcb-fill"></span>
+                </div>
+                <div class="file-info-item">
+                    <span class="file-info-label">BOM:</span>
+                    <span class="file-info-name" id="filename-bom"></span>
+                </div>
+            </div>
+
+            <div class="action-section">
+                <button class="btn-action" id="btn-fill" disabled>📥 执行回填</button>
+            </div>
+
+            <div class="result-section" id="result-fill" style="display:none;">
+                <div class="result-success">
+                    <span class="result-icon">✓</span>
+                    <span id="result-msg-fill"></span>
+                </div>
+                <div class="result-details" id="result-details-fill" style="display:none;">
+                    <div class="result-warnings" id="result-warnings"></div>
+                </div>
+                <a class="btn-download" id="download-fill" download>📥 下载回填后的 PcbDoc</a>
+
+                <!-- 回填校验报告：HTML 表格预览 -->
+                <div class="audit-section" id="audit-section-fill" style="display:none;">
+                    <div class="audit-header">
+                        <h3>📋 回填校验报告（改前/改后 Comment 对照）</h3>
+                        <div class="audit-legend">
+                            <span class="audit-tag audit-tag-success">成功</span>
+                            <span class="audit-tag audit-tag-skip">跳过</span>
+                            <span class="audit-tag audit-tag-fail">失败</span>
+                            <span class="audit-tag audit-tag-miss">BOM 缺失</span>
+                        </div>
+                    </div>
+                    <div class="audit-summary" id="audit-summary"></div>
+                    <div class="audit-table-wrap">
+                        <table class="audit-table">
+                            <thead>
+                                <tr>
+                                    <th>位号</th>
+                                    <th>封装</th>
+                                    <th>BOM 元件值</th>
+                                    <th>改前 Comment</th>
+                                    <th>改后 Comment</th>
+                                    <th>BOM 状态</th>
+                                    <th>写入状态</th>
+                                    <th>说明</th>
+                                </tr>
+                            </thead>
+                            <tbody id="audit-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="loading" id="loading" style="display:none;">
+            <div class="loading-spinner"></div>
+            <div class="loading-text" id="loading-text">处理中...</div>
+        </div>
+
+        <footer>
+            <p>支持 Altium Designer PcbDoc 格式 | 二进制直接读写，无需打开 AD</p>
+        </footer>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
